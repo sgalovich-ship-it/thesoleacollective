@@ -531,6 +531,7 @@ footer{
       <button class="form-btn" onclick="handleForm()">Request Your Invitation</button>
     </div>
     <p class="form-note">For the woman who is ready. We will be in touch.</p>
+    <p id="form-error" style="display:none;margin-top:.75rem;font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;color:var(--rose);text-align:center;">Something went wrong. Please try again.</p>
   </div>
 
   <div class="form-success" id="form-success">
@@ -579,18 +580,50 @@ const observer = new IntersectionObserver((entries) => {
 }, {threshold: 0.12});
 document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
-function handleForm() {
+async function handleForm() {
   const name = document.getElementById('fname').value.trim();
   const email = document.getElementById('femail').value.trim();
   if (!name) { shake('fname'); return; }
   if (!email || !email.includes('@')) { shake('femail'); return; }
-  document.getElementById('form-wrap').style.display = 'none';
-  document.getElementById('form-success').style.display = 'block';
+
+  const btn = document.querySelector('.form-btn');
+  btn.textContent = 'Submitting...';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({
+        access_key: '1a4ab74d-2bbe-4d67-bc2d-0fdc028e93b1',
+        name,
+        email,
+        subject: 'New SŌLEA Collective Waitlist Request',
+        from_name: 'SŌLEA Collective',
+        replyto: email,
+        botcheck: '',
+        message: `New waitlist submission from ${name} (${email})`,
+        autoresponse: true,
+        autoresponse_subject: 'You are on the list — SŌLEA Collective',
+        autoresponse_message: `Dear ${name},\n\nThank you for requesting your invitation to the SŌLEA Collective.\n\nWe are curating something beautiful and intentional — and you will be among the very first to know when doors open.\n\nWith grace,\nThe SŌLEA Collective\nthesoleacollective.com`
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('form-wrap').style.display = 'none';
+      document.getElementById('form-success').style.display = 'block';
+    } else {
+      throw new Error('Server error');
+    }
+  } catch(e) {
+    btn.textContent = 'Request Your Invitation';
+    btn.disabled = false;
+    document.getElementById('form-error').style.display = 'block';
+  }
 }
 function shake(id) {
   const el = document.getElementById(id);
   el.style.borderColor = '#B8897A';
-  el.style.animation = 'none';
   setTimeout(() => { el.style.borderColor = ''; }, 1800);
 }
 </script>
